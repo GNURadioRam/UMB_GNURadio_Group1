@@ -120,6 +120,8 @@ class DEMO6_RX(gr.top_block, Qt.QWidget):
         self.f1_vals = f1_vals = [0,1,2,3,4,5]
         self.Sim_Setup = Sim_Setup = 0
         self.F_select = F_select = 0
+        self.C1 = C1 = 1
+        self.C0 = C0 = 1
 
         ##################################################
         # Blocks
@@ -150,6 +152,12 @@ class DEMO6_RX(gr.top_block, Qt.QWidget):
             lambda i: self.set_Sim_Setup(self._Sim_Setup_options[i]))
         # Create the radio buttons
         self.top_layout.addWidget(self._Sim_Setup_tool_bar)
+        self._C1_range = qtgui.Range(0.5, 10, 0.5, 1, 200)
+        self._C1_win = qtgui.RangeWidget(self._C1_range, self.set_C1, "Base multiplier for channel 1", "counter_slider", float, QtCore.Qt.Horizontal)
+        self.top_layout.addWidget(self._C1_win)
+        self._C0_range = qtgui.Range(0.5, 10, 0.5, 1, 200)
+        self._C0_win = qtgui.RangeWidget(self._C0_range, self.set_C0, "Base multiplier for channel 0", "counter_slider", float, QtCore.Qt.Horizontal)
+        self.top_layout.addWidget(self._C0_win)
         self.zeromq_pub_sink_0 = zeromq.pub_sink(gr.sizeof_float, 1, zmq_add, 100, False, (-1), '', True, True)
         self.xmlrpc_server_0 = SimpleXMLRPCServer((xmlrpc_add, 8080), allow_none=True)
         self.xmlrpc_server_0.register_instance(self)
@@ -295,11 +303,9 @@ class DEMO6_RX(gr.top_block, Qt.QWidget):
         self.blocks_selector_0_4.set_enabled(True)
         self.blocks_selector_0_2 = blocks.selector(gr.sizeof_gr_complex*1,Sim_Setup,0)
         self.blocks_selector_0_2.set_enabled(True)
-        self.blocks_multiply_const_vxx_1 = blocks.multiply_const_cc(1/((rx_X - tx_X1)**2   +   (rx_Y - tx_Y1)**2)**0.5)
-        self.blocks_multiply_const_vxx_0 = blocks.multiply_const_cc(1/((rx_X - tx_X0)**2   +   (rx_Y - tx_Y0)**2)**0.5)
+        self.blocks_multiply_const_vxx_1 = blocks.multiply_const_cc(C1/((rx_X - tx_X1)**2   +   (rx_Y - tx_Y1)**2)**0.5)
+        self.blocks_multiply_const_vxx_0 = blocks.multiply_const_cc(C0/((rx_X - tx_X0)**2   +   (rx_Y - tx_Y0)**2)**0.5)
         self.blocks_keep_one_in_n_0_0_1 = blocks.keep_one_in_n(gr.sizeof_float*1, 3200)
-        self.blocks_keep_one_in_n_0_0_0 = blocks.keep_one_in_n(gr.sizeof_float*1, 3200)
-        self.blocks_keep_one_in_n_0_0 = blocks.keep_one_in_n(gr.sizeof_float*1, 3200)
         self.blocks_keep_one_in_n_0 = blocks.keep_one_in_n(gr.sizeof_float*1, 3200)
         self.blocks_float_to_complex_2 = blocks.float_to_complex(1)
         self.blocks_float_to_complex_1 = blocks.float_to_complex(1)
@@ -373,8 +379,8 @@ class DEMO6_RX(gr.top_block, Qt.QWidget):
         self.connect((self.blocks_float_to_complex_1, 0), (self.blocks_throttle2_0_0_0_0, 0))
         self.connect((self.blocks_float_to_complex_2, 0), (self.blocks_throttle2_0_0_0_0_1, 0))
         self.connect((self.blocks_keep_one_in_n_0, 0), (self.epy_block_0_0, 0))
-        self.connect((self.blocks_keep_one_in_n_0_0, 0), (self.qtgui_number_sink_0_0, 0))
-        self.connect((self.blocks_keep_one_in_n_0_0_0, 0), (self.epy_block_0_0, 1))
+        self.connect((self.blocks_keep_one_in_n_0, 0), (self.qtgui_number_sink_0_0, 0))
+        self.connect((self.blocks_keep_one_in_n_0_0_1, 0), (self.epy_block_0_0, 1))
         self.connect((self.blocks_keep_one_in_n_0_0_1, 0), (self.qtgui_number_sink_0_0, 1))
         self.connect((self.blocks_multiply_const_vxx_0, 0), (self.blocks_add_xx_0, 0))
         self.connect((self.blocks_multiply_const_vxx_1, 0), (self.blocks_add_xx_0, 1))
@@ -388,8 +394,6 @@ class DEMO6_RX(gr.top_block, Qt.QWidget):
         self.connect((self.epy_block_0_0, 0), (self.qtgui_number_sink_1_0, 0))
         self.connect((self.epy_block_0_0, 0), (self.zeromq_pub_sink_0, 0))
         self.connect((self.power_calc_1_0, 0), (self.blocks_keep_one_in_n_0, 0))
-        self.connect((self.power_calc_1_0, 0), (self.blocks_keep_one_in_n_0_0, 0))
-        self.connect((self.power_calc_1_0_0, 0), (self.blocks_keep_one_in_n_0_0_0, 0))
         self.connect((self.power_calc_1_0_0, 0), (self.blocks_keep_one_in_n_0_0_1, 0))
 
 
@@ -418,28 +422,28 @@ class DEMO6_RX(gr.top_block, Qt.QWidget):
 
     def set_tx_Y1(self, tx_Y1):
         self.tx_Y1 = tx_Y1
-        self.blocks_multiply_const_vxx_1.set_k(1/((self.rx_X - self.tx_X1)**2   +   (self.rx_Y - self.tx_Y1)**2)**0.5)
+        self.blocks_multiply_const_vxx_1.set_k(self.C1/((self.rx_X - self.tx_X1)**2   +   (self.rx_Y - self.tx_Y1)**2)**0.5)
 
     def get_tx_Y0(self):
         return self.tx_Y0
 
     def set_tx_Y0(self, tx_Y0):
         self.tx_Y0 = tx_Y0
-        self.blocks_multiply_const_vxx_0.set_k(1/((self.rx_X - self.tx_X0)**2   +   (self.rx_Y - self.tx_Y0)**2)**0.5)
+        self.blocks_multiply_const_vxx_0.set_k(self.C0/((self.rx_X - self.tx_X0)**2   +   (self.rx_Y - self.tx_Y0)**2)**0.5)
 
     def get_tx_X1(self):
         return self.tx_X1
 
     def set_tx_X1(self, tx_X1):
         self.tx_X1 = tx_X1
-        self.blocks_multiply_const_vxx_1.set_k(1/((self.rx_X - self.tx_X1)**2   +   (self.rx_Y - self.tx_Y1)**2)**0.5)
+        self.blocks_multiply_const_vxx_1.set_k(self.C1/((self.rx_X - self.tx_X1)**2   +   (self.rx_Y - self.tx_Y1)**2)**0.5)
 
     def get_tx_X0(self):
         return self.tx_X0
 
     def set_tx_X0(self, tx_X0):
         self.tx_X0 = tx_X0
-        self.blocks_multiply_const_vxx_0.set_k(1/((self.rx_X - self.tx_X0)**2   +   (self.rx_Y - self.tx_Y0)**2)**0.5)
+        self.blocks_multiply_const_vxx_0.set_k(self.C0/((self.rx_X - self.tx_X0)**2   +   (self.rx_Y - self.tx_Y0)**2)**0.5)
 
     def get_samp_rate(self):
         return self.samp_rate
@@ -467,8 +471,8 @@ class DEMO6_RX(gr.top_block, Qt.QWidget):
     def set_rx_Y(self, rx_Y):
         self.rx_Y = rx_Y
         self.analog_const_source_x_5_4.set_offset(self.rx_Y)
-        self.blocks_multiply_const_vxx_0.set_k(1/((self.rx_X - self.tx_X0)**2   +   (self.rx_Y - self.tx_Y0)**2)**0.5)
-        self.blocks_multiply_const_vxx_1.set_k(1/((self.rx_X - self.tx_X1)**2   +   (self.rx_Y - self.tx_Y1)**2)**0.5)
+        self.blocks_multiply_const_vxx_0.set_k(self.C0/((self.rx_X - self.tx_X0)**2   +   (self.rx_Y - self.tx_Y0)**2)**0.5)
+        self.blocks_multiply_const_vxx_1.set_k(self.C1/((self.rx_X - self.tx_X1)**2   +   (self.rx_Y - self.tx_Y1)**2)**0.5)
 
     def get_rx_X(self):
         return self.rx_X
@@ -476,8 +480,8 @@ class DEMO6_RX(gr.top_block, Qt.QWidget):
     def set_rx_X(self, rx_X):
         self.rx_X = rx_X
         self.analog_const_source_x_5_3.set_offset(self.rx_X)
-        self.blocks_multiply_const_vxx_0.set_k(1/((self.rx_X - self.tx_X0)**2   +   (self.rx_Y - self.tx_Y0)**2)**0.5)
-        self.blocks_multiply_const_vxx_1.set_k(1/((self.rx_X - self.tx_X1)**2   +   (self.rx_Y - self.tx_Y1)**2)**0.5)
+        self.blocks_multiply_const_vxx_0.set_k(self.C0/((self.rx_X - self.tx_X0)**2   +   (self.rx_Y - self.tx_Y0)**2)**0.5)
+        self.blocks_multiply_const_vxx_1.set_k(self.C1/((self.rx_X - self.tx_X1)**2   +   (self.rx_Y - self.tx_Y1)**2)**0.5)
 
     def get_filt_w(self):
         return self.filt_w
@@ -514,6 +518,20 @@ class DEMO6_RX(gr.top_block, Qt.QWidget):
     def set_F_select(self, F_select):
         self.F_select = F_select
         self._F_select_callback(self.F_select)
+
+    def get_C1(self):
+        return self.C1
+
+    def set_C1(self, C1):
+        self.C1 = C1
+        self.blocks_multiply_const_vxx_1.set_k(self.C1/((self.rx_X - self.tx_X1)**2   +   (self.rx_Y - self.tx_Y1)**2)**0.5)
+
+    def get_C0(self):
+        return self.C0
+
+    def set_C0(self, C0):
+        self.C0 = C0
+        self.blocks_multiply_const_vxx_0.set_k(self.C0/((self.rx_X - self.tx_X0)**2   +   (self.rx_Y - self.tx_Y0)**2)**0.5)
 
 
 
