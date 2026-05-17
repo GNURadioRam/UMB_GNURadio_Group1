@@ -1,0 +1,130 @@
+#!/bin/bash
+# master_run.sh
+
+# =====================================================================
+# CONFIGURATION
+# =====================================================================
+PItx_USER="ucanlab"
+PItx_IP="10.1.1.112"
+
+PIrx_USER="ucanlab"
+PIrx_IP="10.1.1.111"
+
+PItx_SCRIPT1="PSSCG.py"
+PItx_SCRIPT2="PI1_SCRIPT1_HERE"
+
+PIrx_SCRIPT1="RTL_SDRRead.py"
+PIrx_SCRIPT2="PI2_SCRIPT2_HERE"
+
+PItx_ZMQ_PORT="PI1_ZMQ_PORT_HERE"
+PIrx_ZMQ_PORT="PI2_ZMQ_PORT_HERE"
+
+PItx_XMLRPC_PORT="PI1_XMLRPC_PORT_HERE"
+PIrx_XMLRPC_PORT="PI2_XMLRPC_PORT_HERE"
+
+PItx_POLL_INTERVAL="PI1_POLL_INTERVAL_HERE"
+PIrx_POLL_INTERVAL="PI2_POLL_INTERVAL_HERE"
+
+TOP_DIR="/home/ramon/Documents/demo6_testDIR"
+#PItx_DIR="${TOP_DIR}/pi1"
+PItx_DIR="/home/ucanlab/Desktop/Final_Project_Chirps/Working Files"
+#PIrx_DIR="${TOP_DIR}/pi2"
+PIrx_DIR="/home/ucanlab/Desktop/Final"
+SCRIPT_DIR="/home/ramon/Documents/demo6"
+
+# =====================================================================
+# STEP 1: Setup directories and deploy scripts
+# =====================================================================
+echo "============================================"
+echo "STEP 1: Setting up directories and deploying scripts..."
+echo "============================================"
+
+#echo "Creating directories on Pi1..."
+#ssh ${PItx_USER}@${PI1_IP} "mkdir -p ${PI1_DIR}"
+#echo "Creating directories on Pi2..."
+#ssh ${PIrx_USER}@${PI2_IP} "mkdir -p ${PI2_DIR}"
+
+#echo "Copying scripts to Pi1..."
+#scp -pr ${SCRIPT_DIR}/${PI1tx_SCRIPT1} ${PI1tx_USER}@${PItx_IP}:${PItx_DIR}/${PItx_SCRIPT1} > /dev/null || echo "ERROR: failed to copy ${PItx_SCRIPT1}"
+#scp -pr ${SCRIPT_DIR}/${PI1tx_SCRIPT2} ${PI1tx_USER}@${PItx_IP}:${PItx_DIR}/${PItx_SCRIPT2} > /dev/null || echo "ERROR: failed to copy ${PItx_SCRIPT2}"
+
+#echo "Copying scripts to Pi2..."
+#scp -pr ${SCRIPT_DIR}/${PI2_SCRIPT1} ${PI2_USER}@${PI2_IP}:${PI2_DIR}/${PI2_SCRIPT1} > /dev/null || echo "ERROR: failed to copy ${PI2_SCRIPT1}"
+#scp -pr ${SCRIPT_DIR}/${PI2_SCRIPT2} ${PI2_USER}@${PI2_IP}:${PI2_DIR}/${PI2_SCRIPT2} > /dev/null || echo "ERROR: failed to copy ${PI2_SCRIPT2}"
+
+echo "Setting permissions..."
+#/run/user/1000, 0770 instead of 0700, original 755
+#ssh ${PItx_USER}@${PI1_IP} "chmod 700 /run/user/1000/ " #${PItx_DIR}/${PItx_SCRIPT2}
+#ssh ${PIrx_USER}@${PI2_IP} # "chmod 755 ${PIrx_DIR}/${PIrx_SCRIPT1} ${PIrx_DIR}/${PIrx_SCRIPT2}
+
+echo "kill prior process"
+# Fix permissions and kill any existing instances on Pi2
+ssh ${PIrx_USER}@${PIrx_IP} "sudo chmod 0700 /run/user/1000 && sudo fuser -k 55555/tcp && pkill -f ${PIrx_SCRIPT1}" 2>/dev/null
+
+echo "Setup Complete."
+echo ""
+
+# =====================================================================
+# STEP 2: Start Pi2 first script (with X11 forwarding for GUI)
+# =====================================================================
+echo "============================================"
+echo "STEP 2: Starting ${PI2_SCRIPT1} on Pi2..."
+echo "============================================"
+#ssh -X ${PIrx_USER}@${PIrx_IP} "cd ${PIrx_DIR} && python3 ${PIrx_SCRIPT1} --zmq-address tcp://${PIrx_IP}:${PIrx_ZMQ_PORT} --xmlrpc-port ${PIrx_XMLRPC_PORT} --poll-interval ${PIrx_POLL_INTERVAL} > /dev/null &"
+ssh -X ${PIrx_USER}@${PIrx_IP} "cd ${PIrx_DIR} && python3 ${PIrx_SCRIPT1}" & SSH_PID2=$!
+sleep 2
+ssh -X ${PIrx_USER}@${PIrx_IP} "cd ${PIrx_DIR} && python3 ${PIrx_SCRIPT1} 2>&1" > ~/Documents/demo6/pirx_$(date +%Y%m%d_%H%M%S).txt &
+echo "${PIrx_SCRIPT1} started."
+echo ""
+
+# =====================================================================
+# STEP 3: Start Pi2 second script (with X11 forwarding for GUI)
+# =====================================================================
+#echo "============================================"
+#echo "STEP 3: Starting ${PIrx_SCRIPT2} on Pi2..."
+#echo "============================================"
+#ssh -X ${PI2_USER}@${PI2_IP} "cd ${PI2_DIR} && python3 ${PI2_SCRIPT2} --zmq-address tcp://${PI2_IP}:${PI2_ZMQ_PORT} --xmlrpc-port ${PI2_XMLRPC_PORT} --poll-interval ${PI2_POLL_INTERVAL} > /dev/null &"
+#echo "${PI2_SCRIPT2} started."
+echo ""
+
+sleep 1
+
+# =====================================================================
+# STEP 4: Start Pi1 first script (with X11 forwarding for GUI)
+# =====================================================================
+echo "============================================"
+echo "STEP 4: Starting ${PItx_SCRIPT1} on Pi1..."
+echo "============================================"
+#ssh -X ${PI1_USER}@${PI1_IP} "cd ${PI1_DIR} && python3 ${PI1_SCRIPT1} --zmq-address tcp://${PI1_IP}:${PI1_ZMQ_PORT} --xmlrpc-port ${PI1_XMLRPC_PORT} --poll-interval ${PI1_POLL_INTERVAL} > /dev/null &"
+#ssh -X ${PI1_USER}@${PI1_IP} "cd ${PI1_DIR} && python3 ${PI1_SCRIPT1} > /dev/null &"
+#ssh -X ${PI1_USER}@${PI1_IP} "cd ${PI1_DIR} && DISPLAY=:0 nohup python3 ${PI1_SCRIPT1} > /dev/null 2>&1 &"
+
+#ssh -X ${PI1_USER}@${PI1_IP} "cd ${PI1_DIR} && python3 ${PI1_SCRIPT1} > /dev/null 2>&1 &"
+ssh -X ${PItx_USER}@${PItx_IP} "cd ${PItx_DIR} && python3 ${PItx_SCRIPT1}" & SSH_PID=$!
+sleep 2
+echo "${PItx_SCRIPT1} started."
+echo ""
+
+sleep 1
+
+# =====================================================================
+# STEP 5: Start Pi1 second script (with X11 forwarding for GUI)
+# =====================================================================
+echo "============================================"
+echo "STEP 5: Starting ${PI1_SCRIPT2} on Pi1..."
+echo "============================================"
+#ssh -X ${PI1_USER}@${PI1_IP} "cd ${PI1_DIR} && python3 ${PI1_SCRIPT2} --zmq-address tcp://${PI1_IP}:${PI1_ZMQ_PORT} --xmlrpc-port ${PI1_XMLRPC_PORT} --poll-interval ${PI1_POLL_INTERVAL} > /dev/null &"
+echo "${PI1_SCRIPT2} started."
+echo ""
+
+echo "============================================"
+echo "All scripts deployed and running."
+echo "Pi1 (${PI1_IP}): ${PI1_SCRIPT1}, ${PI1_SCRIPT2}"
+echo "Pi2 (${PI2_IP}): ${PI2_SCRIPT1}, ${PI2_SCRIPT2}"
+echo "============================================"
+
+# Continue with rest of steps...
+echo "STEP 5..."
+
+echo "Press Ctrl+C to stop all scripts and exit."
+wait $SSH_PID
